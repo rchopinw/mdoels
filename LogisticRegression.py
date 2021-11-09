@@ -1,17 +1,6 @@
 import numpy as np
 
 
-class NaiveGradientDescent:
-    def __init__(self, lr):
-        self.lr = lr
-
-    def optimize(self, init, gradient, max_iter=2000):
-        g = init
-        for _ in range(max_iter):
-            g = g - self.lr * gradient(g)
-        return g
-
-
 class LogisticRegression:
     """
     X: n x d (n observations, d features)
@@ -21,35 +10,42 @@ class LogisticRegression:
         self.c = lam
 
     def fit(self, x, y, lr=0.001, max_iter=10000):
-        y = self._one_hot(y)
+        y = self.__one_hot(y)
         x = np.hstack([np.ones(shape=(x.shape[0], 1)), x])
         self.w = np.random.random(size=(x.shape[1], len(self.label)))
         self.loss_history = []
         for i in range(max_iter):
-            gradient, loss = self._gradient(x, y, self.w), self._loss(x, y, self.w)
-            self.w = self.w - lr * gradient
+            gradient, loss = self.__gradient(x, y, self.w), self.__loss(x, y, self.w)
+            self.w -= lr * gradient
             self.loss_history.append(loss)
 
     def predict(self, x):
-        x = np.hstack([np.ones(shape=(x.shape[0], 1)), x])
-        prob = self._softmax(x @ self.w)
+        x = np.hstack(
+            [np.ones(shape=(x.shape[0], 1)), x]
+        )
+        prob = self.__softmax(x @ self.w)
         arg_max = prob.max(axis=1)
-        return np.array([[self.label_inverse[x]] for x in arg_max])
+        return np.array(
+            [
+                [self.label_inverse[x]]
+                for x in arg_max
+            ]
+        )
 
-    def _softmax(self, x):
+    def __softmax(self, x):
         x_exp = np.exp(x)
         norm = x_exp.sum(axis=1, keepdims=True)
         return x_exp / norm
 
-    def _gradient(self, x, y, w):
-        g = - x.T @ (y - self._softmax(x @ w)) / x.shape[0] + self.c * w
+    def __gradient(self, x, y, w):
+        g = x.T @ (self.__softmax(x @ w) - y) / x.shape[0] + self.c * w
         return g
 
-    def _loss(self, x, y, w):
-        l = - np.sum(y * np.log(self._softmax(x @ w))) / x.shape[0] + (self.c / 2) * np.sum(w * w)
+    def __loss(self, x, y, w):
+        l = - np.sum(y * np.log(self.__softmax(x @ w))) / x.shape[0] + (self.c / 2) * np.sum(w * w)
         return l
 
-    def _one_hot(self, y):
+    def __one_hot(self, y):
         y_unique = np.sort(np.unique(y))
         self.label = {x: i for i, x in enumerate(y_unique)}
         self.label_inverse = {self.label[x]: x for x in self.label}
@@ -64,18 +60,21 @@ class BinaryLogisticRegression:
         self.c = lam
 
     def fit(self, x, y, lr=0.0001, max_iter=2000):
-        x = np.hstack([np.ones(shape=(x.shape[0], 1)), x])
+        x = np.hstack(
+            [np.ones(shape=(x.shape[0], 1)), x]
+        )
         self.w = np.random.random(size=(x.shape[0], 1))
         self.loss = []
         for i in range(max_iter):
-            z = x @ self.w
-            h = self._sigmoid(z)
+            h = self._sigmoid(x @ self.w)
             g = x.T @ (h - y) / y.shape[0]
             self.w = self.w - lr * g
             self.loss.append(self._loss(h, y))
 
     def _predict_prob(self, x):
-        x = np.hstack([np.ones(shape=(x.shape[0], 1)), x.reshape((-1, 1))])
+        x = np.hstack(
+            [np.ones(shape=(x.shape[0], 1)), x.reshape((-1, 1))]
+        )
         return self._sigmoid(x)
 
     def _predict(self, x, threshold=0.5):
